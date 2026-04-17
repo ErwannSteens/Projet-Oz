@@ -42,34 +42,46 @@ define
 
     % Cette fonction transforme un hash en string
     fun {DecodeHash H}
-        S L Go in
         S = {Int.toString H}
-        L = {String.toList S}
 
         fun {Go L}
-            case L of nil then ""
-            [] H1|T1 then
-                case T1 of
-                    H2|T then
-                        Pair N M Letter in
-                        Pair = {String.fromList [H1 H2]}
-                        N = {String.toInt Pair} mod 37
-                        M = if N < 10 then 36 else N end
-                        Letter = {NumberToLetter M}
-                        Letter # {Go T}
-                [] nil then "" end
+            case L of nil then nil
+
+            [] H1|H2|T then
+                N = ((H1 - &0) * 10 + (H2 - &0)) mod 37
+                M = if N < 10 then 36 else N end
+            in
+                {NumberToLetter M} | {Go T}
+
+            [] [H1|H2|T] then
+                {Go H1|H2|T}
+
+            [] _ then nil
             end
         end
-        {Go L}
+    in
+        {Go {String.tokens S nil}}
     end
 
+    % Cette fonction calcule l'effort nécessaire pour effectuer une transaction
+    fun {CalculEffort Value}
+        S = {Int.toString Value}
+        Len = {Length S}
+        fun {Pow2 N}
+            if N == 0 then 1
+            else 2 * {Pow2 N-1}
+            end
+        end
+    in
+        {Pow2 Len} - 1 % Formule d'une somme géométrique de raison 2
+    end
 
     %% STUDENT END
 
     %% Return a string representation of the secret
     fun {Decode Blockchain}
         %% STUDENT START:
-        %% TODO
+        
         %% STUDENT END
     end
 
@@ -82,7 +94,3 @@ define
         %% STUDENT END
     end
 end
-
-
-% Tests %
-{System.showInfo {NumberToLetter 10}} % J'utilise System.showInfo pour avoir la lettre sinon c'est en ASCII :/
