@@ -76,6 +76,33 @@ define
         {Pow2 Len} - 1 % Formule d'une somme géométrique de raison 2
     end
 
+    % Cette fonction calcule le hash d'une transaction
+    fun {CalculTransactionHash Transaction}
+        TransitionHash = (Transaction.nonce + Transaction.sender + Transaction.receiver + Transaction.value) mod 1000000
+        in
+            TransitionHash 
+    end
+
+    % Cette fonction calcule le hash d'un bloc
+    fun {CalculBlockHash Block}
+        local SumHashTransaction BlockHash in
+            SumHashTransaction = {FoldL Block.transactions fun {$ Acc HashTransaction} Acc + {CalculTransactionHash HashTransaction.hash} end 0}
+
+            BlockHash = (Block.number + Block.previousHash + SumHashTransaction) mod 1000000
+            BlockHash 
+        end
+    end
+
+    % Cette fonction vérifie si une transaction est valide
+    fun {IsValidTransaction Transaction State}
+        % TO-DO
+    end
+
+    % Cette fonction vérifie si un bloc est valide
+    fun {IsValidBlock Block} % Vérifier si il faut pas d'autres paramètres en plus /!\
+        % TO-DO
+    end
+
     %% STUDENT END
 
     %% Return a string representation of the secret
