@@ -96,6 +96,13 @@ define
     % Cette fonction vérifie si une transaction est valide
     fun {IsValidTransaction Transaction State}
         % TO-DO
+        sender = Transaction.sender
+        User = nil % Je sais pas comment récup le User vu que State c'est une liste de User
+        if Transaction.nonce != User.nonce + 1 || Transaction.hash \= {CalculTransactionHash Transaction} ||
+            Transaction.value < 0 || Transaction.max_effort < 0 || Transaction.effortCalculEffort(Transaction.value) > Transaction.max_effort 
+            || User.balance < Transaction.value then false
+        else
+            true
     end
 
     % Cette fonction vérifie si un bloc est valide
