@@ -186,25 +186,36 @@ define
     % The GenesisState and the Transactions are given as input and the function is expected to bound the FinalState and the FinalBlockchain to their respective final values.
     fun {ExecuteBlockchain GenesisState Transactions FinalState FinalBlockchain}
         %% STUDENT START:
-        % Etape 1 : Construire le State initial
+        % Étape 1 : Construire le State initial
+        fun {BuildState GenesisStateRecord}
+            fun {Transform List}
+                case List of nil then nil
+                [] (User#Balance)|T then
+                    (User#user(balance:Balance nonce:0))|{Transform T}
+                end
+            end
+        in
+            {List.toRecord state {Transform {Record.toList GenesisStateRecord}}}
+        end
 
-
-        % Etape 2 : Ajouter l’effort aux transactions
-        fun {CalculEffortTransactionS TransactionsList}
+        % Étape 2 : Ajouter l’effort aux transactions
+        fun {AddEffortTransactions TransactionsList}
             case TransactionsList
-            of nil then 0
-            [] T1|T2 then {CalculEffort T1.value} + {CalculEffortTransactionS T2}
+            of nil then nil
+            [] T1|T2 then effortT1 = {CalculEffort T1.value}
+            in
+                tx(block_number:T1.block_number nonce:T1.nonce hash:T1.hash sender:T1.sender receiver:T1.receiver value:T1.value max_effort:T1.max_effort effort:effortT1)| {AddEffortTransactionS T2}
             end
         end
-        {CalculEffortTransactionS Transactions}
+        NewTransactions = {AddEffortTransactions Transactions}
 
-        % Etape 3 : Construire les blocs
-
-
-        % Etape 4 : Mise à jour du State
+        % Étape 3 : Construire les blocs
 
 
-        % Etape 5 : Construire la Blockchain
+        % Étape 4 : Mise à jour du State
+
+
+        % Étape 5 : Construire la Blockchain
 
         %% STUDENT END
     end
