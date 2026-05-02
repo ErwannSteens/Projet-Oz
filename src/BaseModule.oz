@@ -190,12 +190,13 @@ define
 
 
         % Etape 2 : Ajouter l’effort aux transactions
-        fun {CalculEffortTransactionS value}
-            case Transactions 
+        fun {CalculEffortTransactionS TransactionsList}
+            case TransactionsList
             of nil then 0
-            [] T1|T2 then {CalculEffort T1.value} + {CalculEffortTransactionS T2.value}
+            [] T1|T2 then {CalculEffort T1.value} + {CalculEffortTransactionS T2}
             end
         end
+        {CalculEffortTransactionS Transactions}
 
         % Etape 3 : Construire les blocs
 
