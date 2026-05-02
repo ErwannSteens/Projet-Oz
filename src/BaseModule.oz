@@ -95,7 +95,6 @@ define
 
     % Cette fonction vérifie si une transaction est valide
     fun {IsValidTransaction Transaction State}
-        % TO-DO
         local
             Sender = Transaction.sender
             % Vérification si sender est dans la liste de State
@@ -105,7 +104,7 @@ define
             
             else
                 local 
-                    UserInfo = State.(Sender) % Je sais pas comment récup le User vu que State c'est une liste de User   => J'AI TROUVE !
+                    UserInfo = State.(Sender)
                 in
                     if Transaction.nonce \= UserInfo.nonce + 1 then false
                     elseif Transaction.hash \= {CalculTransactionHash Transaction} then false
@@ -121,7 +120,7 @@ define
     end
 
 
-    %Cette fonction retourne le block précédent
+    % Cette fonction retourne le block précédent
     fun{GetPreviousBlock CurrentBlock Blockchain}
         case Blockchain
         of nil then nil
@@ -135,8 +134,7 @@ define
 
 
     % Cette fonction vérifie si un bloc est valide
-    fun {IsValidBlock Block Blockchain State} % Vérifier si il faut pas d'autres paramètres en plus /!\
-% TO-DO
+    fun {IsValidBlock Block Blockchain State}
         local 
             %Trouver le bloc précédent
             PreviousBlock = {GetPreviousBlock Block Blockchain}
@@ -176,16 +174,19 @@ define
     %% Return a string representation of the secret
     fun {Decode Blockchain}
         %% STUDENT START:
-        
-        %% STUDENT END
+        case Blockchain of nil then ""
+        [] B1|B2 then 
+            {DecodeHash B1.hash} # {Decode B2} % Opérateur # pour concaténation
+        end
     end
+        %% STUDENT END
 
 
     % This function is the starting point of the execution
     % The GenesisState and the Transactions are given as input and the function is expected to bound the FinalState and the FinalBlockchain to their respective final values.
     fun {ExecuteBlockchain GenesisState Transactions FinalState FinalBlockchain}
         %% STUDENT START:
-        %% TODO
+        
         %% STUDENT END
     end
 end
