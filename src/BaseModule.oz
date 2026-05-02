@@ -186,7 +186,25 @@ define
     % The GenesisState and the Transactions are given as input and the function is expected to bound the FinalState and the FinalBlockchain to their respective final values.
     fun {ExecuteBlockchain GenesisState Transactions FinalState FinalBlockchain}
         %% STUDENT START:
-        
+        % Etape 1 : Construire le State initial
+
+
+        % Etape 2 : Ajouter l’effort aux transactions
+        fun {CalculEffortTransactionS value}
+            case Transactions 
+            of nil then 0
+            [] T1|T2 then {CalculEffort T1.value} + {CalculEffortTransactionS T2.value}
+            end
+        end
+
+        % Etape 3 : Construire les blocs
+
+
+        % Etape 4 : Mise à jour du State
+
+
+        % Etape 5 : Construire la Blockchain
+
         %% STUDENT END
     end
 end
