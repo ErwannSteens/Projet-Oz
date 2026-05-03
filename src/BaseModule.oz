@@ -204,12 +204,27 @@ define
             of nil then nil
             [] T1|T2 then effortT1 = {CalculEffort T1.value}
             in
-                tx(block_number:T1.block_number nonce:T1.nonce hash:T1.hash sender:T1.sender receiver:T1.receiver value:T1.value max_effort:T1.max_effort effort:effortT1)| {AddEffortTransactionS T2}
+                tx(block_number:T1.block_number nonce:T1.nonce hash:T1.hash sender:T1.sender receiver:T1.receiver value:T1.value max_effort:T1.max_effort effort:effortT1)|{AddEffortTransactions T2}
             end
         end
         NewTransactions = {AddEffortTransactions Transactions}
 
-        % Étape 3 : Construire les blocs
+        % Étape 3 : Construire les blocs et filtrer les transactions valides
+        % A corriger très bancal
+        fun {BuildBlocks L} 
+            case L
+            of nil then nil
+            [] T1|T2 then currentBlockNumber = T1.block_number
+            fun {SameBlock L block_number}
+                case L
+                of nil then (nil|nil)
+                [] H|T then
+                    if H.block_number == block_number then |{SameBlock T T.block_number}
+                    else    
+            in
+                bloc(transaction)|{BuildBlocks T2}
+            end
+        end
 
 
         % Étape 4 : Mise à jour du State
