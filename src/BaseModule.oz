@@ -48,7 +48,7 @@ define
             case L of nil then nil
 
             [] H1|H2|T then
-                N = ((H1 - &0) * 10 + (H2 - &0)) mod 37
+                N = ((H1 - &0) * 10 + (H2 - &0)) mod 37 % Le &0 représente le caractère '0'
                 M = if N < 10 then 36 else N end
             in
                 {NumberToLetter M} | {Go T}
