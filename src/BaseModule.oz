@@ -228,9 +228,15 @@ define
 
 
         % Étape 4 : Mise à jour du State
+        fun {UpdateState State}
+            % TO-DO
+        end
 
 
         % Étape 5 : Construire la Blockchain
+        fun {BuildBlockchain}
+            % TO-DO
+        end
 
         %% STUDENT END
     end
