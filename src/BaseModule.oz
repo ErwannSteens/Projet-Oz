@@ -204,25 +204,39 @@ define
             of nil then nil
             [] T1|T2 then effortT1 = {CalculEffort T1.value}
             in
-                tx(block_number:T1.block_number nonce:T1.nonce hash:T1.hash sender:T1.sender receiver:T1.receiver value:T1.value max_effort:T1.max_effort effort:effortT1)|{AddEffortTransactions T2}
+                % {AdjoinAt Record Feature Value} fonction built-in qui ajoute un champ à un record :-)
+                {AdjoinAt T1 effort effortT1}|{AddEffortTransactions T2} 
             end
         end
         NewTransactions = {AddEffortTransactions Transactions}
 
-        % Étape 3 : Construire les blocs et filtrer les transactions valides
-        % A corriger très bancal
-        fun {BuildBlocks L} 
-            case L
-            of nil then nil
-            [] T1|T2 then currentBlockNumber = T1.block_number
-            fun {SameBlock L block_number}
-                case L
-                of nil then (nil|nil)
-                [] H|T then
-                    if H.block_number == block_number then |{SameBlock T T.block_number}
-                    else    
+        % Étape 3 : Parcourir NewTransactions et filtrer les transactions valides
+        fun {Loop Ts CurrentBlockNum CurrentTxs Effort Blockchain State PrevHash}
+            case Ts
+            of nil then 
+                BlockHash = (CurrentBlockNum + PrevHash + {FoldL CurrentTxs fun {$ A T} A + T.hash end 0}) mod 1000000
+                Block = block(number:CurrentBlockNum previousHash:PrevHash transactions:{Reverse CurrentTxs} hash:BlockHash)
             in
-                bloc(transaction)|{BuildBlocks T2}
+                Block|Blockchain # State
+
+            [] T|Rest then
+                if T.block_number \= CurrentBlockNum then
+                    BlockHash = (CurrentBlockNum + PrevHash + {FoldL CurrentTxs fun {$ A X} A + X.hash end 0}) mod 1000000
+                    Block = block(number:CurrentBlockNum previousHash:PrevHash transactions:{Reverse CurrentTxs} hash:BlockHash)
+                in
+                    {Loop Ts T.block_number nil 0 Block|Blockchain State BlockHash}
+
+                else
+                    Eff = {CalculEffort T.value}
+
+                    if {IsValidTransaction T State} andthen Effort + Eff =< 300 then 
+                        NewState = {ApplyTransaction T State}
+                    in
+                        {Loop Rest CurrentBlockNum T|CurrentTxs Effort+Eff Blockchain NewState PrevHash}
+                    else
+                        {Loop Rest CurrentBlockNum CurrentTxs Effort Blockchain State PrevHash}
+                    end
+                end
             end
         end
 
