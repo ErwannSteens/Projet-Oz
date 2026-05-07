@@ -182,76 +182,103 @@ define
         %% STUDENT END
 
 
-    % This function is the starting point of the execution
-    % The GenesisState and the Transactions are given as input and the function is expected to bound the FinalState and the FinalBlockchain to their respective final values.
-    fun {ExecuteBlockchain GenesisState Transactions FinalState FinalBlockchain}
+    % This procedure is the starting point of the execution
+    % The GenesisState and the Transactions are given as input and the rocedure is expected to bound the FinalState and the FinalBlockchain to their respective final values.
+    proc {ExecuteBlockchain GenesisState Transactions FinalState FinalBlockchain}
         %% STUDENT START:
-        % Étape 1 : Construire le State initial
-        fun {BuildState GenesisStateRecord}
-            fun {Transform List}
-                case List of nil then nil
-                [] (User#Balance)|T then
-                    (User#user(balance:Balance nonce:0))|{Transform T}
-                end
-            end
+        local 
+        BuildState AddEffortTransactions Loop UpdateState 
+        InitialState TransactionWithEffort TempBlockchain TempState
         in
-            {List.toRecord state {Transform {Record.toList GenesisStateRecord}}}
-        end
-
-        % Étape 2 : Ajouter l’effort aux transactions
-        fun {AddEffortTransactions TransactionsList}
-            case TransactionsList
-            of nil then nil
-            [] T1|T2 then effortT1 = {CalculEffort T1.value}
+            % Étape 1 : Construire le State initial
+            fun {BuildState GenesisStateRecord}
+                fun {Transform List}
+                    case List of nil then nil
+                    [] (User#Balance)|T then
+                        (User#user(balance:Balance nonce:0))|{Transform T}
+                    end
+                end
             in
-                % {AdjoinAt Record Feature Value} fonction built-in qui ajoute un champ à un record :-)
-                {AdjoinAt T1 effort effortT1}|{AddEffortTransactions T2} 
+                {List.toRecord state {Transform {Record.toList GenesisStateRecord}}}
             end
-        end
-        NewTransactions = {AddEffortTransactions Transactions}
 
-        % Étape 3 : Parcourir NewTransactions et filtrer les transactions valides
-        fun {Loop Ts CurrentBlockNum CurrentTxs Effort Blockchain State PrevHash}
-            case Ts
-            of nil then 
-                BlockHash = (CurrentBlockNum + PrevHash + {FoldL CurrentTxs fun {$ A T} A + T.hash end 0}) mod 1000000
-                Block = block(number:CurrentBlockNum previousHash:PrevHash transactions:{Reverse CurrentTxs} hash:BlockHash)
-            in
-                Block|Blockchain # State
-
-            [] T|Rest then
-                if T.block_number \= CurrentBlockNum then
-                    BlockHash = (CurrentBlockNum + PrevHash + {FoldL CurrentTxs fun {$ A X} A + X.hash end 0}) mod 1000000
-                    Block = block(number:CurrentBlockNum previousHash:PrevHash transactions:{Reverse CurrentTxs} hash:BlockHash)
-                in
-                    {Loop Ts T.block_number nil 0 Block|Blockchain State BlockHash}
-
-                else
-                    Eff = {CalculEffort T.value}
-
-                    if {IsValidTransaction T State} andthen Effort + Eff =< 300 then 
-                        NewState = {ApplyTransaction T State}
+            % Étape 2 : Ajouter l’effort aux transactions
+            fun {AddEffortTransactions TransactionsList}
+                case TransactionsList
+                of nil then nil
+                [] T1|T2 then
+                    local
+                        effortT1 = {CalculEffort T1.value}
                     in
-                        {Loop Rest CurrentBlockNum T|CurrentTxs Effort+Eff Blockchain NewState PrevHash}
-                    else
-                        {Loop Rest CurrentBlockNum CurrentTxs Effort Blockchain State PrevHash}
+                        % {AdjoinAt Record Feature Value} fonction built-in qui ajoute un champ à un record :-)
+                        {AdjoinAt T1 effort effortT1}|{AddEffortTransactions T2} 
                     end
                 end
             end
+
+            % Étape 3 : Mise à jour du State
+            fun {UpdateState Transaction State}
+                local
+                    Sender = Transaction.sender
+                    Receiver = Transaction.receiver
+                    Value = Transaction.value
+                    NewSender
+                    NewReceiver
+                in
+                    
+                    % Mise à jour du state de l'envoyeur
+                    NewSender = user(balance: State.Sender.balance - Value nonce: Transaction.nonce)
+
+                    % Mise à jour du state de récepteur
+                    if{HasFeature State Receiver} then 
+                        NewReceiver = user(balance : State.Receiver.balance + Value nonce: State.Receiver.nonce)
+                    else
+                        NewReceiver = user(balance: Value nonce: 0)
+                    end
+
+                    {AdjoinList State [Sender#NewSender Receiver#NewReceiver]}
+                end
+            end
+
+            % Étape 4 : Parcourir NewTransactions et filtrer les transactions valides
+            fun {Loop Ts CurrentBlockNum CurrentTxs Effort Blockchain State PrevHash}
+                case Ts
+                of nil then 
+                    BlockHash = (CurrentBlockNum + PrevHash + {FoldL CurrentTxs fun {$ A T} A + T.hash end 0}) mod 1000000
+                    Block = block(number:CurrentBlockNum previousHash:PrevHash transactions:{Reverse CurrentTxs} hash:BlockHash)
+                in
+                    Block|Blockchain # State
+
+                [] T|Rest then
+                    if T.block_number \= CurrentBlockNum then
+                        BlockHash = (CurrentBlockNum + PrevHash + {FoldL CurrentTxs fun {$ A X} A + X.hash end 0}) mod 1000000
+                        Block = block(number:CurrentBlockNum previousHash:PrevHash transactions:{Reverse CurrentTxs} hash:BlockHash)
+                    in
+                        {Loop Ts T.block_number nil 0 Block|Blockchain State BlockHash}
+
+                    else
+                        local
+                            Eff = {CalculEffort T.value}
+                        in
+                            if {IsValidTransaction T State} andthen Effort + Eff =< 300 then 
+                                NewState = {UpdateState T State}
+                            in
+                                {Loop Rest CurrentBlockNum T|CurrentTxs Effort+Eff Blockchain NewState PrevHash}
+                            else
+                                {Loop Rest CurrentBlockNum CurrentTxs Effort Blockchain State PrevHash}
+                            end
+                        end
+                    end
+                end
+            end
+
+            InitialState = {BuildState GenesisState}
+            TransactionWithEffort = {AddEffortTransactions Transactions}
+            TempBlockchain # TempState = {Loop TransactionWithEffort 0 nil 0 nil InitialState 0}
+
+            FinalState = TempState
+            FinalBlockchain = {Reverse TempBlockchain}
+            %% STUDENT END
         end
-
-
-        % Étape 4 : Mise à jour du State
-        fun {UpdateState State}
-            % TO-DO
-        end
-
-
-        % Étape 5 : Construire la Blockchain
-        fun {BuildBlockchain}
-            % TO-DO
-        end
-
-        %% STUDENT END
     end
 end
