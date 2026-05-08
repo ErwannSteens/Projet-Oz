@@ -43,7 +43,7 @@ define
     % Cette fonction transforme un hash en string
     fun {DecodeHash H}
         S = {Int.toString H}
-        Chars = {String.toList S}
+        Chars = S
 
         fun {Go L}
             case L
@@ -51,7 +51,7 @@ define
                 N = ((H1-&0)*10 + (H2-&0)) mod 37
                 M = if N < 10 then 36 else N end
             in
-                {NumberToLetter M} # {Go T}
+                {Append {NumberToLetter M} {Go T}}
             [] _ then ""
             end
         end
@@ -172,7 +172,7 @@ define
         case Blockchain
         of nil then ""
         [] B|T then
-            {DecodeHash B.hash} # {Decode T}
+            {Append {DecodeHash B.hash} {Decode T}}
         end
     end
     %% STUDENT END
