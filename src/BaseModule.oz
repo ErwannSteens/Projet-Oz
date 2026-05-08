@@ -43,24 +43,22 @@ define
     % Cette fonction transforme un hash en string
     fun {DecodeHash H}
         S = {Int.toString H}
+        Chars = {String.toList S}
 
         fun {Go L}
-            case L of nil then nil
-
-            [] H1|H2|T then
-                N = ((H1 - &0) * 10 + (H2 - &0)) mod 37 % Le &0 représente le caractère '0'
+            case L
+            of H1|H2|T then
+                N = ((H1 - &0) * 10 + (H2 - &0)) mod 37
                 M = if N < 10 then 36 else N end
             in
-                {NumberToLetter M} | {Go T}
+                {NumberToLetter M} # {Go H2|T}
 
-            [] [H1|H2|T] then
-                {Go H1|H2|T}
-
-            [] _ then nil
+            [] [_] then ""
+            [] nil then ""
             end
         end
     in
-        {Go {String.tokens S nil}}
+        {Go Chars}
     end
 
     % Cette fonction calcule l'effort nécessaire pour effectuer une transaction
@@ -150,7 +148,7 @@ define
                     if Block.number \= 0 then false
                     elseif Block.previousHash \= 0 then false
                     elseif Block.hash \= {CalculBlockHash Block} then false
-                    elseif Block.transactions \= nil then false
+                    %elseif Block.transactions == nil then false
                     elseif AllTransactionsValidity ==false then false
                     elseif TotalEffort > 300 then false
                     else true
@@ -160,7 +158,7 @@ define
                     if Block.number \= PreviousBlock.number +1 then false
                     elseif Block.previousHash \= {CalculBlockHash PreviousBlock} then false
                     elseif Block.hash \= {CalculBlockHash Block} then false
-                    elseif Block.transactions \= nil then false
+                    %elseif Block.transactions == nil then false
                     elseif AllTransactionsValidity ==false then false
                     elseif TotalEffort > 300 then false
                     else true
@@ -199,7 +197,7 @@ define
                     end
                 end
             in
-                {List.toRecord state {Transform {Record.toList GenesisStateRecord}}}
+                {List.toRecord state {Transform {Record.toListInd GenesisStateRecord}}}
             end
 
             % Étape 2 : Ajouter l’effort aux transactions
@@ -208,10 +206,10 @@ define
                 of nil then nil
                 [] T1|T2 then
                     local
-                        effortT1 = {CalculEffort T1.value}
+                        EffortT1 = {CalculEffort T1.value}
                     in
                         % {AdjoinAt Record Feature Value} fonction built-in qui ajoute un champ à un record :-)
-                        {AdjoinAt T1 effort effortT1}|{AddEffortTransactions T2} 
+                        {AdjoinAt T1 effort EffortT1}|{AddEffortTransactions T2} 
                     end
                 end
             end
@@ -227,11 +225,11 @@ define
                 in
                     
                     % Mise à jour du state de l'envoyeur
-                    NewSender = user(balance: State.Sender.balance - Value nonce: Transaction.nonce)
+                    NewSender = user(balance: State.(Sender).balance - Value nonce: Transaction.nonce)
 
                     % Mise à jour du state de récepteur
-                    if{HasFeature State Receiver} then 
-                        NewReceiver = user(balance : State.Receiver.balance + Value nonce: State.Receiver.nonce)
+                    if {HasFeature State Receiver} then 
+                        NewReceiver = user(balance : State.(Receiver).balance + Value nonce: State.(Receiver).nonce)
                     else
                         NewReceiver = user(balance: Value nonce: 0)
                     end
@@ -247,23 +245,23 @@ define
                     BlockHash = (CurrentBlockNum + PrevHash + {FoldL CurrentTxs fun {$ A T} A + T.hash end 0}) mod 1000000
                     Block = block(number:CurrentBlockNum previousHash:PrevHash transactions:{Reverse CurrentTxs} hash:BlockHash)
                 in
-                    Block|Blockchain # State
+                    (Block|Blockchain) # State
 
                 [] T|Rest then
                     if T.block_number \= CurrentBlockNum then
                         BlockHash = (CurrentBlockNum + PrevHash + {FoldL CurrentTxs fun {$ A X} A + X.hash end 0}) mod 1000000
                         Block = block(number:CurrentBlockNum previousHash:PrevHash transactions:{Reverse CurrentTxs} hash:BlockHash)
                     in
-                        {Loop Ts T.block_number nil 0 Block|Blockchain State BlockHash}
+                        {Loop Ts T.block_number nil 0 (Block|Blockchain) State BlockHash}
 
                     else
                         local
-                            Eff = {CalculEffort T.value}
+                            Eff = T.effort
                         in
                             if {IsValidTransaction T State} andthen Effort + Eff =< 300 then 
                                 NewState = {UpdateState T State}
                             in
-                                {Loop Rest CurrentBlockNum T|CurrentTxs Effort+Eff Blockchain NewState PrevHash}
+                                {Loop Rest CurrentBlockNum (T|CurrentTxs) (Effort+Eff) Blockchain NewState PrevHash}
                             else
                                 {Loop Rest CurrentBlockNum CurrentTxs Effort Blockchain State PrevHash}
                             end
