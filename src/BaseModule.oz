@@ -48,17 +48,15 @@ define
         fun {Go L}
             case L
             of H1|H2|T then
-                N = ((H1 - &0) * 10 + (H2 - &0)) mod 37
+                N = ((H1-&0)*10 + (H2-&0)) mod 37
                 M = if N < 10 then 36 else N end
             in
-                {NumberToLetter M} # {Go H2|T}
-
-            [] [_] then ""
-            [] nil then ""
+                {NumberToLetter M} # {Go T}
+            [] _ then ""
             end
         end
     in
-        {Go Chars}
+        {VirtualString.toString {Go Chars}}
     end
 
     % Cette fonction calcule l'effort nécessaire pour effectuer une transaction
@@ -123,7 +121,7 @@ define
         case Blockchain
         of nil then nil
         [] H|T then
-            if {CalculBlockHash H} == CurrentBlock.previousHash then H 
+            if H.hash == CurrentBlock.previousHash then H 
             else {GetPreviousBlock CurrentBlock T}
             end
         end
@@ -148,7 +146,7 @@ define
                     if Block.number \= 0 then false
                     elseif Block.previousHash \= 0 then false
                     elseif Block.hash \= {CalculBlockHash Block} then false
-                    %elseif Block.transactions == nil then false
+                    elseif Block.transactions == nil then false
                     elseif AllTransactionsValidity ==false then false
                     elseif TotalEffort > 300 then false
                     else true
@@ -156,9 +154,9 @@ define
 
             else
                     if Block.number \= PreviousBlock.number +1 then false
-                    elseif Block.previousHash \= {CalculBlockHash PreviousBlock} then false
+                    elseif Block.previousHash \= PreviousBlock.hash then false
                     elseif Block.hash \= {CalculBlockHash Block} then false
-                    %elseif Block.transactions == nil then false
+                    elseif Block.transactions == nil then false
                     elseif AllTransactionsValidity ==false then false
                     elseif TotalEffort > 300 then false
                     else true
@@ -171,13 +169,13 @@ define
 
     %% Return a string representation of the secret
     fun {Decode Blockchain}
-        %% STUDENT START:
-        case Blockchain of nil then ""
-        [] B1|B2 then 
-            {DecodeHash B1.hash} # {Decode B2} % Opérateur # pour concaténation
+        case Blockchain
+        of nil then ""
+        [] B|T then
+            {DecodeHash B.hash} # {Decode T}
         end
     end
-        %% STUDENT END
+    %% STUDENT END
 
 
     % This procedure is the starting point of the execution
