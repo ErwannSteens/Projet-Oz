@@ -101,7 +101,7 @@ define
         in  
             % Member est une fonction built-in qui renvoie true si Sender est dans la DenyList
             if {Member Sender DenyList} then false
-                
+
             elseif HasSender==false then false
             
             else
@@ -145,7 +145,7 @@ define
             TotalEffort = {FoldL Block.transactions fun{$ Acc Transaction} Acc + {CalculEffort Transaction.value} end 0}
 
             %Vérification que toutes les transactions sont valides grace à la fonction All
-            AllTransactionsValidity = {List.all Block.transactions fun {$ Transaction} {IsValidTransaction Transaction State} end}
+            AllTransactionsValidity = {List.all Block.transactions fun {$ Transaction} {IsValidTransaction Transaction State DenyList} end}
 
         in
             if PreviousBlock == nil then
@@ -242,8 +242,17 @@ define
                 end
             end
 
+            % Étape 3 bis (DenyList) : Incrémentation de count
+            fun {IncrementCount Counts Sender}
+                if {HasFeature Counts Sender} then 
+                    {AdjoinAt Counts Sender Counts.(Sender)+1}
+                else 
+                    {AdjoinAt Counts Sender 1}
+                end
+            end
+
             % Étape 4 : Parcourir NewTransactions et filtrer les transactions valides
-            fun {Loop Ts CurrentBlockNum CurrentTxs Effort Blockchain State PrevHash}
+            fun {Loop Ts CurrentBlockNum CurrentTxs Effort Blockchain State PrevHash DenyList Counts}
                 case Ts
                 of nil then 
                     BlockHash = (CurrentBlockNum + PrevHash + {FoldL CurrentTxs fun {$ A T} A + T.hash end 0}) mod 1000000
@@ -256,27 +265,40 @@ define
                         BlockHash = (CurrentBlockNum + PrevHash + {FoldL CurrentTxs fun {$ A X} A + X.hash end 0}) mod 1000000
                         Block = block(number:CurrentBlockNum previousHash:PrevHash transactions:{Reverse CurrentTxs} hash:BlockHash)
                     in
-                        {Loop Ts T.block_number nil 0 (Block|Blockchain) State BlockHash}
+                        {Loop Ts T.block_number nil 0 (Block|Blockchain) State BlockHash DenyList counts()}
 
                     else
-                        local
+                       local
                             Eff = T.effort
+                            NewCounts
+                            NewDenyList
                         in
-                            if {IsValidTransaction T State} andthen Effort + Eff =< 300 then 
-                                NewState = {UpdateState T State}
-                            in
-                                {Loop Rest CurrentBlockNum (T|CurrentTxs) (Effort+Eff) Blockchain NewState PrevHash}
+                            %% incrémenter compteur sender
+                            NewCounts = {IncrementCount Counts T.sender}
+
+                            %% denylist à partir de 3 transactions
+                            if NewCounts.(T.sender) >= 3 then
+                                NewDenyList = T.sender | DenyList
                             else
-                                {Loop Rest CurrentBlockNum CurrentTxs Effort Blockchain State PrevHash}
+                                NewDenyList = DenyList
+                            end
+
+                            if {IsValidTransaction T State NewDenyList} andthen Effort + Eff =< 300 then
+                                NewState = {UpdateState T State}
+
+                            in
+                                {Loop Rest CurrentBlockNum (T|CurrentTxs) (Effort+Eff) Blockchain NewState PrevHash NewDenyList NewCounts}
+
+                            else
+                                {Loop Rest CurrentBlockNum CurrentTxs Effort Blockchain State PrevHash NewDenyList NewCounts}
                             end
                         end
                     end
                 end
-            end
 
             InitialState = {BuildState GenesisState}
             TransactionWithEffort = {AddEffortTransactions Transactions}
-            TempBlockchain # TempState = {Loop TransactionWithEffort 0 nil 0 nil InitialState 0}
+            TempBlockchain # TempState = {Loop TransactionWithEffort 0 nil 0 nil InitialState 0 nil counts()}
 
             FinalState = TempState
             FinalBlockchain = {Reverse TempBlockchain}
