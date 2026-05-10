@@ -189,7 +189,7 @@ define
     proc {ExecuteBlockchain GenesisState Transactions FinalState FinalBlockchain}
         %% STUDENT START:
         local 
-        BuildState AddEffortTransactions Loop UpdateState 
+        BuildState AddEffortTransactions Loop UpdateState IncrementCount 
         InitialState TransactionWithEffort TempBlockchain TempState
         in
             % Étape 1 : Construire le State initial
@@ -290,16 +290,14 @@ define
 
                             if IsValid andthen Effort + Eff =< 300 then
                                 NewState = {UpdateState T State}
-
-                            in
                                 {Loop Rest CurrentBlockNum (T|CurrentTxs) (Effort+Eff) Blockchain NewState PrevHash NewDenyList NewCounts}
-
                             else
                                 {Loop Rest CurrentBlockNum CurrentTxs Effort Blockchain State PrevHash NewDenyList NewCounts}
                             end
                         end
                     end
                 end
+            end
 
             InitialState = {BuildState GenesisState}
             TransactionWithEffort = {AddEffortTransactions Transactions}
