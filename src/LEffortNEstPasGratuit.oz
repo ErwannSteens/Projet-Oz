@@ -110,7 +110,7 @@ define
                     elseif Transaction.value < 0 then false
                     elseif Transaction.max_effort < 0 then false
                     elseif {CalculEffort Transaction.value} > Transaction.max_effort then false
-                    elseif UserInfo.balance < Transaction.value then false
+                    elseif UserInfo.balance < (Transaction.value + Transaction.effort) then false
                     else true
                     end
                 end
@@ -221,12 +221,13 @@ define
                     Sender = Transaction.sender
                     Receiver = Transaction.receiver
                     Value = Transaction.value
+                    Effort = Transaction.effort
                     NewSender
                     NewReceiver
                 in
                     
                     % Mise à jour du state de l'envoyeur
-                    NewSender = user(balance: State.(Sender).balance - Value nonce: Transaction.nonce)
+                    NewSender = user(balance: State.(Sender).balance - Value - Effort nonce: Transaction.nonce)
 
                     % Mise à jour du state de récepteur
                     if {HasFeature State Receiver} then 
