@@ -136,7 +136,7 @@ define
 
 
     % Cette fonction vérifie si un bloc est valide
-    fun {IsValidBlock Block Blockchain State}
+    fun {IsValidBlock Block Blockchain State DenyList}
         local 
             %Trouver le bloc précédent
             PreviousBlock = {GetPreviousBlock Block Blockchain}
@@ -272,18 +272,23 @@ define
                             Eff = T.effort
                             NewCounts
                             NewDenyList
+                            IsValid
+                            NewState
                         in
-                            %% incrémenter compteur sender
+                            %% vérifier avec l'ancienne denylist
+                            IsValid = {IsValidTransaction T State DenyList}
+
+                            %% incrémenter compteur après
                             NewCounts = {IncrementCount Counts T.sender}
 
-                            %% denylist à partir de 3 transactions
-                            if NewCounts.(T.sender) >= 3 then
+                            %% ajouter à la denylist seulement pour les transactions suivantes
+                            if NewCounts.(T.sender) >= 3 andthen {Not {Member T.sender DenyList}} then
                                 NewDenyList = T.sender | DenyList
                             else
                                 NewDenyList = DenyList
                             end
 
-                            if {IsValidTransaction T State NewDenyList} andthen Effort + Eff =< 300 then
+                            if IsValid andthen Effort + Eff =< 300 then
                                 NewState = {UpdateState T State}
 
                             in
